@@ -1,0 +1,84 @@
+bootJar.enabled = false
+jar.enabled = true
+
+dependencies {
+    implementation "org.liquibase:liquibase-core"
+    liquibaseRuntime "org.liquibase.ext:liquibase-hibernate5"
+    liquibaseRuntime "org.yaml:snakeyaml"
+    liquibaseRuntime "mysql:mysql-connector-java"
+    liquibaseRuntime sourceSets.main.compileClasspath
+
+    // jooq
+    jooqRuntime "org.springframework.boot:spring-boot-starter-data-jpa"
+    jooqRuntime "mysql:mysql-connector-java"
+}
+
+if (!project.hasProperty("runList")) {
+    project.ext.runList = "main"
+}
+
+liquibase {
+    activities {
+        main {
+            driver "com.mysql.cj.jdbc.Driver"
+            url "jdbc:mysql://localhost:3306/sample?allowPublicKeyRetrieval=true&serverTimezone=UTC&useSSL=false"
+            username "sample"
+            password "sample"
+            changeLogFile "src/main/resources/db.changelog-master.yml"
+            referenceUrl "hibernate:spring:sample.model.entities?dialect=liquibase.ext.hibernate.database.HibernateGenericDialect&hibernate.physical_naming_strategy=org.springframework.boot.orm.jpa.hibernate.SpringPhysicalNamingStrategy&hibernate.implicit_naming_strategy=org.springframework.boot.orm.jpa.hibernate.SpringImplicitNamingStrategy"
+            referenceDriver "liquibase.ext.hibernate.database.connection.HibernateDriver"
+            defaultSchemaName "sample"
+            logLevel "info"
+            classpath "src/main/resources/"
+        }
+        diff {
+            driver "com.mysql.cj.jdbc.Driver"
+            url "jdbc:mysql://localhost:3306/sample?allowPublicKeyRetrieval=true&serverTimezone=UTC&useSSL=false"
+            username "sample"
+            password "sample"
+            changeLogFile "src/main/resources/changelog/" + new Date().format("yyyyMMddHHmmss") + "_changelog.yml"
+            referenceUrl "hibernate:spring:sample.model.entities?dialect=liquibase.ext.hibernate.database.HibernateGenericDialect&hibernate.physical_naming_strategy=org.springframework.boot.orm.jpa.hibernate.SpringPhysicalNamingStrategy&hibernate.implicit_naming_strategy=org.springframework.boot.orm.jpa.hibernate.SpringImplicitNamingStrategy"
+            referenceDriver "liquibase.ext.hibernate.database.connection.HibernateDriver"
+            defaultSchemaName "sample"
+            logLevel "info"
+            classpath "${buildDir}/classes/java/main"
+        }
+    }
+    runList = project.ext.runList
+}
+
+jooq {
+    def packages = "sample.model.entities"
+    version = "${jooqVersion}"
+    edition = "OSS"
+    "${project.name}"(sourceSets.main) {
+        jdbc {
+            driver = "com.mysql.cj.jdbc.Driver"
+            url = "jdbc:mysql://localhost:3306/sample?allowPublicKeyRetrieval=true&serverTimezone=UTC&useSSL=false"
+            user = "sample"
+            password = "sample"
+        }
+        generator {
+            name = "org.jooq.codegen.JavaGenerator"
+            strategy {
+            }
+            database {
+                name = "org.jooq.meta.mysql.MySQLDatabase"
+                includes = "sample.*"
+            }
+            generate {
+            }
+            target {
+                packageName = "${packages}"
+                directory = "${buildDir}/generated/sources/jooq/java/main"
+            }
+        }
+    }
+}
+
+def jooqTask = "generate${project.name.split(/[^\w]/).collect { it.toLowerCase().capitalize() }.join("")}JooqSchemaSource"
+"${jooqTask}" {
+    dependsOn += [clean, update]
+}
+
+build.dependsOn += [jooqTask, test]

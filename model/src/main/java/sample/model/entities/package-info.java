@@ -1,0 +1,1 @@
+package sample.model.entities;

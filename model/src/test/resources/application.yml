@@ -1,0 +1,33 @@
+spring:
+  application:
+    name: sample
+  main:
+    lazy-initialization: true
+  thymeleaf:
+    prefix: classpath:/templates/
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:sample;DATABASE_TO_UPPER=false
+    username: sa
+    password:
+  jpa:
+    database: h2
+    database-platform: H2
+    hibernate:
+      ddl-auto: validate
+      naming:
+        physical-strategy: "org.springframework.boot.orm.jpa.hibernate.SpringPhysicalNamingStrategy"
+    show-sql: true
+    properties:
+      hibernate.dialect: org.hibernate.dialect.H2Dialect
+  liquibase:
+    change-log: classpath:/db.changelog-master.yml
+    url: jdbc:h2:mem:sample;DATABASE_TO_UPPER=false
+    user: ${spring.datasource.username}
+    password: ${spring.datasource.password}
+  jooq:
+    sql-dialect: H2
+logging:
+  level:
+    org:
+      jooq: debug

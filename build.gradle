@@ -1,0 +1,152 @@
+import org.springframework.boot.gradle.plugin.SpringBootPlugin
+
+buildscript {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        jcenter()
+        google()
+        gradlePluginPortal()
+        maven { url "https://repo.spring.io/plugins-release" }
+    }
+    dependencies {
+        classpath "io.spring.gradle:propdeps-plugin:0.0.10.RELEASE"
+    }
+}
+
+plugins {
+    id "idea"
+    id "java"
+    id "java-library"
+    id "org.springframework.boot" version "${springBootVersion}" apply false
+    id "io.spring.dependency-management" version "1.0.9.RELEASE" apply false
+    id "org.liquibase.gradle" version "2.0.2" apply false
+    id "nu.studer.jooq" version "4.1" apply false
+    id "org.sonarqube" version "2.8" apply false
+}
+
+idea {
+    project {
+        jdkName = JavaVersion.VERSION_13
+        languageLevel = JavaVersion.VERSION_13
+    }
+    module {
+        name = project.name
+        jdkName = JavaVersion.VERSION_13
+        excludeDirs += files(".idea", "build", ".gradle")
+    }
+}
+
+configure(subprojects) {
+    apply plugin: "java"
+    apply plugin: "java-library"
+    apply plugin: "idea"
+    apply plugin: "org.springframework.boot"
+    apply plugin: "io.spring.dependency-management"
+    apply plugin: "org.liquibase.gradle"
+    apply plugin: "nu.studer.jooq"
+    apply plugin: "jacoco"
+    apply plugin: "org.sonarqube"
+    apply plugin: "propdeps"
+    apply plugin: "propdeps-maven"
+    apply plugin: "propdeps-idea"
+
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        jcenter()
+        google()
+        gradlePluginPortal()
+        maven { url "https://repo.spring.io/plugins-release" }
+    }
+
+    idea {
+        module {
+            name = project.name
+            jdkName = JavaVersion.VERSION_13
+            downloadJavadoc = true
+            inheritOutputDirs = false
+            outputDir = file("build/classes/main")
+            testOutputDir = file("build/classes/test")
+            sourceDirs += file("src/main/java")
+            testSourceDirs += file("src/test/java")
+            excludeDirs += file("build")
+        }
+    }
+
+    assert JavaVersion.current().isCompatibleWith(JavaVersion.VERSION_13)
+    sourceCompatibility = JavaVersion.VERSION_13
+    targetCompatibility = JavaVersion.VERSION_13
+
+    group = "sample"
+    version = rootProject.file("VERSION").text.trim()
+
+    configurations {
+        developmentOnly
+        runtimeClasspath {
+            extendsFrom developmentOnly
+        }
+    }
+
+    dependencyManagement {
+        dependencies {
+            imports {
+                mavenBom SpringBootPlugin.BOM_COORDINATES
+            }
+            dependency "org.liquibase:liquibase-core:${liquibaseVersion}"
+            dependency "org.liquibase.ext:liquibase-hibernate5:${liquibaseHibernate5Version}"
+            dependency "org.yaml:snakeyaml:${snakeyamlVersion}"
+            dependency "org.jooq:jooq:${jooqVersion}"
+            dependency "org.projectlombok:lombok:${lombokVersion}"
+            dependency "com.h2database:h2:${h2Version}"
+            dependency "mysql:mysql-connector-java:${mysqlVersion}"
+        }
+    }
+
+    dependencies {
+        implementation "org.springframework.boot:spring-boot-starter"
+        implementation "org.springframework.boot:spring-boot-starter-data-jpa"
+        implementation "org.springframework.boot:spring-boot-starter-jooq"
+        implementation "mysql:mysql-connector-java"
+
+        testImplementation "org.springframework.boot:spring-boot-starter-test"
+        testImplementation "com.h2database:h2"
+
+        // lombok
+        implementation "org.projectlombok:lombok"
+        annotationProcessor "org.projectlombok:lombok"
+        testImplementation "org.projectlombok:lombok"
+        testAnnotationProcessor "org.projectlombok:lombok"
+    }
+
+    jacocoTestReport {
+        reports {
+            xml.enabled true
+            xml.destination file("${buildDir}/jacoco/jacoco.xml")
+            csv.enabled false
+            html.enabled false
+        }
+    }
+
+    file("sonar.properties").withReader {
+        Properties sonarProperties = new Properties()
+        sonarProperties.load(it)
+        sonarProperties.each { key, value ->
+            sonarqube {
+                properties {
+                    property key, value
+                }
+            }
+        }
+    }
+
+    test {
+        useJUnitPlatform()
+        testLogging {
+            events "passed", "skipped", "failed"
+        }
+    }
+
+    check.dependsOn += ":${project.name}:sonarqube"
+    jar.dependsOn += check
+}

@@ -1,0 +1,30 @@
+databaseChangeLog:
+  - changeSet:
+      id: 1582818754844-1
+      author: jay (generated)
+      changes:
+        - createTable:
+            columns:
+              - column:
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: userPK
+                  name: id
+                  type: BINARY
+              - column:
+                  constraints:
+                    nullable: false
+                  name: create_date
+                  type: timestamp
+              - column:
+                  name: update_date
+                  type: timestamp
+              - column:
+                  name: password
+                  type: VARCHAR(255)
+              - column:
+                  name: user_name
+                  type: VARCHAR(255)
+            tableName: user
+
